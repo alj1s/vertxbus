@@ -16,22 +16,11 @@
 
 var vertx = vertx || {};
 
-!function(factory) {
-  if (typeof define === "function" && define.amd) {
-    // Expose as an AMD module with SockJS dependency.
-    // "vertxbus" and "sockjs" names are used because
-    // AMD module names are derived from file names.
-    define("vertxbus", ["sockjs"], factory);
-  } else {
-    // No AMD-compliant loader
-    factory(SockJS);
-  }
-}(function(SockJS) {
 
   vertx.EventBus = function(url, options) {
   
     var that = this;
-    var sockJSConn = new SockJS(url, undefined, options);
+    var sockJSConn = new WebSocket(url, undefined, options);
     var handlerMap = {};
     var replyHandlers = {};
     var state = vertx.EventBus.CONNECTING;
@@ -220,4 +209,3 @@ var vertx = vertx || {};
 
   return vertx.EventBus;
 
-});
