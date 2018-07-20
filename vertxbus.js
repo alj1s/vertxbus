@@ -20,7 +20,7 @@ var vertx = vertx || {};
   vertx.EventBus = function(url, options) {
   
     var that = this;
-    var sockJSConn = new WebSocket(url, undefined, options);
+    var sockJSConn = new WebSocket(url.replace("http", "ws"), undefined, options);
     var handlerMap = {};
     var replyHandlers = {};
     var state = vertx.EventBus.CONNECTING;
