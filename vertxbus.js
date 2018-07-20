@@ -207,5 +207,4 @@ var vertx = vertx || {};
   vertx.EventBus.CLOSING = 2;
   vertx.EventBus.CLOSED = 3;
 
-  return vertx.EventBus;
 
