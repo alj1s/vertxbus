@@ -22,10 +22,10 @@ window.vertx.EventBus = function(url, options) {
   const sockJSConn = new SockJS(url, undefined, options)
   const handlerMap = {}
   const replyHandlers = {}
-  const state = vertx.EventBus.CONNECTING
-  const sessionID = null
-  const pingTimerID = null
-  const pingInterval = null
+  let state = vertx.EventBus.CONNECTING
+  let sessionID = null
+  let pingTimerID = null
+  let pingInterval = null
   if (options) {
     pingInterval = options["vertxbus_ping_interval"]
   }
