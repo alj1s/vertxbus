@@ -33,7 +33,7 @@ window.vertx.EventBus = function(url, options) {
     pingInterval = 5000
   }
 
-  tt.hat.onopen = null
+  that.onopen = null
   that.onclose = null
 
   that.login = function(username, password, replyHandler) {
