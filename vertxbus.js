@@ -147,7 +147,7 @@ window.vertx.EventBus = function(url, options) {
       // We make a copy since the handler might get unregistered from within the
       // handler itself, which would screw up our iteration
       const copy = handlers.slice(0);
-      for (const i = 0; i < copy.length; i++) {
+      for (let i = 0; i < copy.length; i++) {
         copy[i](body, replyHandler);
       }
     } else {
