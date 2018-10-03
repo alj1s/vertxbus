@@ -13,28 +13,28 @@
  *
  *   You may elect to redistribute this code under either of these licenses.
  */
-import SockJS from "sockjs-client"
+import SockJS from "sockjs-client";
 
-window.vertx = window.vertx || {}
+window.vertx = window.vertx || {};
 
 window.vertx.EventBus = function(url, options) {
-  const that = this
-  const sockJSConn = new SockJS(url, undefined, options)
-  const handlerMap = {}
-  const replyHandlers = {}
-  let state = vertx.EventBus.CONNECTING
-  let sessionID = null
-  let pingTimerID = null
-  let pingInterval = null
+  const that = this;
+  const sockJSConn = new SockJS(url, undefined, options);
+  const handlerMap = {};
+  const replyHandlers = {};
+  let state = vertx.EventBus.CONNECTING;
+  let sessionID = null;
+  let pingTimerID = null;
+  let pingInterval = null;
   if (options) {
-    pingInterval = options["vertxbus_ping_interval"]
+    pingInterval = options["vertxbus_ping_interval"];
   }
   if (!pingInterval) {
-    pingInterval = 5000
+    pingInterval = 5000;
   }
 
-  that.onopen = null
-  that.onclose = null
+  that.onopen = null;
+  that.onclose = null;
 
   that.login = function(username, password, replyHandler) {
     sendOrPub(
@@ -43,170 +43,170 @@ window.vertx.EventBus = function(url, options) {
       { username: username, password: password },
       function(reply) {
         if (reply.status === "ok") {
-          that.sessionID = reply.sessionID
+          that.sessionID = reply.sessionID;
         }
         if (replyHandler) {
-          delete reply.sessionID
-          replyHandler(reply)
+          delete reply.sessionID;
+          replyHandler(reply);
         }
       }
-    )
-  }
+    );
+  };
 
   that.send = function(address, message, replyHandler) {
-    sendOrPub("send", address, message, replyHandler)
-  }
+    sendOrPub("send", address, message, replyHandler);
+  };
 
   that.publish = function(address, message) {
-    sendOrPub("publish", address, message, null)
-  }
+    sendOrPub("publish", address, message, null);
+  };
 
   that.registerHandler = function(address, handler) {
-    checkSpecified("address", "string", address)
-    checkSpecified("handler", "function", handler)
-    checkOpen()
-    const handlers = handlerMap[address]
+    checkSpecified("address", "string", address);
+    checkSpecified("handler", "function", handler);
+    checkOpen();
+    let handlers = handlerMap[address];
     if (!handlers) {
-      handlers = [handler]
-      handlerMap[address] = handlers
+      handlers = [handler];
+      handlerMap[address] = handlers;
       // First handler for this address so we should register the connection
       const msg = {
         type: "register",
         address: address
-      }
-      sockJSConn.send(JSON.stringify(msg))
+      };
+      sockJSConn.send(JSON.stringify(msg));
     } else {
-      handlers[handlers.length] = handler
+      handlers[handlers.length] = handler;
     }
-  }
+  };
 
   that.unregisterHandler = function(address, handler) {
-    checkSpecified("address", "string", address)
-    checkSpecified("handler", "function", handler)
-    checkOpen()
-    const handlers = handlerMap[address]
+    checkSpecified("address", "string", address);
+    checkSpecified("handler", "function", handler);
+    checkOpen();
+    const handlers = handlerMap[address];
     if (handlers) {
-      const idx = handlers.indexOf(handler)
-      if (idx != -1) handlers.splice(idx, 1)
+      const idx = handlers.indexOf(handler);
+      if (idx != -1) handlers.splice(idx, 1);
       if (handlers.length == 0) {
         // No more local handlers so we should unregister the connection
 
         const msg = {
           type: "unregister",
           address: address
-        }
-        sockJSConn.send(JSON.stringify(msg))
-        delete handlerMap[address]
+        };
+        sockJSConn.send(JSON.stringify(msg));
+        delete handlerMap[address];
       }
     }
-  }
+  };
 
   that.close = function() {
-    checkOpen()
-    state = vertx.EventBus.CLOSING
-    sockJSConn.close()
-  }
+    checkOpen();
+    state = vertx.EventBus.CLOSING;
+    sockJSConn.close();
+  };
 
   that.readyState = function() {
-    return state
-  }
+    return state;
+  };
 
   sockJSConn.onopen = function() {
     // Send the first ping then send a ping every pingInterval milliseconds
-    sendPing()
-    pingTimerID = setInterval(sendPing, pingInterval)
-    state = vertx.EventBus.OPEN
+    sendPing();
+    pingTimerID = setInterval(sendPing, pingInterval);
+    state = vertx.EventBus.OPEN;
     if (that.onopen) {
-      that.onopen()
+      that.onopen();
     }
-  }
+  };
 
   sockJSConn.onclose = function() {
-    state = vertx.EventBus.CLOSED
-    if (pingTimerID) clearInterval(pingTimerID)
+    state = vertx.EventBus.CLOSED;
+    if (pingTimerID) clearInterval(pingTimerID);
     if (that.onclose) {
-      that.onclose()
+      that.onclose();
     }
-  }
+  };
 
   sockJSConn.onmessage = function(e) {
-    const msg = e.data
-    const json = JSON.parse(msg)
-    const body = json.body
-    const replyAddress = json.replyAddress
-    const address = json.address
-    let replyHandler
+    const msg = e.data;
+    const json = JSON.parse(msg);
+    const body = json.body;
+    const replyAddress = json.replyAddress;
+    const address = json.address;
+    let replyHandler;
     if (replyAddress) {
       replyHandler = function(reply, replyHandler) {
         // Send back reply
-        that.send(replyAddress, reply, replyHandler)
-      }
+        that.send(replyAddress, reply, replyHandler);
+      };
     }
-    const handlers = handlerMap[address]
+    const handlers = handlerMap[address];
     if (handlers) {
       // We make a copy since the handler might get unregistered from within the
       // handler itself, which would screw up our iteration
-      const copy = handlers.slice(0)
+      const copy = handlers.slice(0);
       for (const i = 0; i < copy.length; i++) {
-        copy[i](body, replyHandler)
+        copy[i](body, replyHandler);
       }
     } else {
       // Might be a reply message
-      const handler = replyHandlers[address]
+      const handler = replyHandlers[address];
       if (handler) {
-        delete replyHandlers[address]
-        handler(body, replyHandler)
+        delete replyHandlers[address];
+        handler(body, replyHandler);
       }
     }
-  }
+  };
 
   function sendPing() {
     const msg = {
       type: "ping"
-    }
-    sockJSConn.send(JSON.stringify(msg))
+    };
+    sockJSConn.send(JSON.stringify(msg));
   }
 
   function sendOrPub(sendOrPub, address, message, replyHandler) {
-    checkSpecified("address", "string", address)
-    checkSpecified("replyHandler", "function", replyHandler, true)
-    checkOpen()
+    checkSpecified("address", "string", address);
+    checkSpecified("replyHandler", "function", replyHandler, true);
+    checkOpen();
     const envelope = {
       type: sendOrPub,
       address: address,
       body: message
-    }
+    };
     if (that.sessionID) {
-      envelope.sessionID = that.sessionID
+      envelope.sessionID = that.sessionID;
     }
     if (replyHandler) {
-      const replyAddress = makeUUID()
-      envelope.replyAddress = replyAddress
-      replyHandlers[replyAddress] = replyHandler
+      const replyAddress = makeUUID();
+      envelope.replyAddress = replyAddress;
+      replyHandlers[replyAddress] = replyHandler;
     }
-    const str = JSON.stringify(envelope)
-    sockJSConn.send(str)
+    const str = JSON.stringify(envelope);
+    sockJSConn.send(str);
   }
 
   function checkOpen() {
     if (state != vertx.EventBus.OPEN) {
-      throw new Error("INVALID_STATE_ERR")
+      throw new Error("INVALID_STATE_ERR");
     }
   }
 
   function checkSpecified(paramName, paramType, param, optional) {
     if (!optional && !param) {
-      throw new Error("Parameter " + paramName + " must be specified")
+      throw new Error("Parameter " + paramName + " must be specified");
     }
     if (param && typeof param != paramType) {
       throw new Error(
         "Parameter " + paramName + " must be of type " + paramType
-      )
+      );
     }
   }
 
   function isFunction(obj) {
-    return !!(obj && obj.constructor && obj.call && obj.apply)
+    return !!(obj && obj.constructor && obj.call && obj.apply);
   }
 
   function makeUUID() {
@@ -216,12 +216,12 @@ window.vertx.EventBus = function(url, options) {
     ) {
       return (
         (b = Math.random() * 16), (a == "y" ? (b & 3) | 8 : b | 0).toString(16)
-      )
-    })
+      );
+    });
   }
-}
+};
 
-window.vertx.EventBus.CONNECTING = 0
-window.vertx.EventBus.OPEN = 1
-window.vertx.EventBus.CLOSING = 2
-window.vertx.EventBus.CLOSED = 3
+window.vertx.EventBus.CONNECTING = 0;
+window.vertx.EventBus.OPEN = 1;
+window.vertx.EventBus.CLOSING = 2;
+window.vertx.EventBus.CLOSED = 3;
